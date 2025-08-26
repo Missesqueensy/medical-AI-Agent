@@ -1,0 +1,415 @@
+{
+  "name": "Agent IA chaercheur de Medicaments",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Chercher Medicament",
+        "formDescription": "Ce formulaire serve à chercher des informations sur un médicament saisi, notamment son prix, sa disponibilité en pharmacie et sa description. Si le médicament est disponible dans notre base de données locale, vous recevrez immédiatement les détails. Sinon, une recherche en ligne sera effectuée automatiquement, et les résultats vous seront envoyés par e-mail ou via Telegram.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "nom",
+              "placeholder": "Entrer un nom du médicament ",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -600,
+        -220
+      ],
+      "id": "afd7f8bc-c023-4e09-8f7a-3fb1e14099f5",
+      "name": "Formulaire de soumission de nom de medicament",
+      "webhookId": "61f01a50-71a5-4de3-8306-f4891b1bfa75"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "18f2d8b2-751a-4081-b5e4-d05188fdf272",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "=exists",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -180,
+        -220
+      ],
+      "id": "6494c594-a5d5-424f-95fe-a01d85ac5aad",
+      "name": "Test de existence dans la base de donnés"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5019/chercher_medicament",
+        "sendHeaders": true,
+  "headerParameters": {
+    "parameters": [
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      }
+    ]
+  },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "nom",
+              "value": "={{ $json[\"nom\"] }}"
+            }
+          ]
+        },
+        "jsonBody": true
+
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -380,
+        -220
+      ],
+      "id": "ca928c29-f23c-42c5-81ae-df705ae719b7",
+      "name": "MCP SQLITE SERVER"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Rôle\nVous êtes un agent intelligent chargé de gérer les demandes de médicaments et d’y répondre de manière professionnelle. Vous êtes connecté à trois sources de données :\n\nmcp_server_sqlite — contient les données officielles des médicaments disponibles (nom, prix, quantité, pharmacie).\n\nduckduckgo — utilisé pour faire une recherche sur Internet si le médicament est introuvable localement.\n\nContexte\nUn client a envoyé une demande concernant un médicament. Votre tâche est de traiter la demande selon cette logique :\n\nÉtapes à suivre\nSi le médicament est trouvé dans mcp_server_sqlite :\n\nRécupérez son {{ $json.resultats[0].libelle }}, {{ $json.resultats[0].prix }},{{ $json.resultats[0].pharmacie }} ,{{ $json.resultats[0].quantite_dispo }}\nRédigez un e-mail clair et professionnel contenant ces informations.\n\nGénérez un message audio court (max 100 mots en français) qui sera envoyé via Telegram.\n\n\nSinon (aucune source locale ne contient ce médicament) :\n\nEffectuez une recherche Web via DuckDuckGo pour récupérer une description ou une utilité.\n\nRédigez un e-mail expliquant que le médicament est indisponible localement, mais que vous fournissez une description utile. en indiquant les informations trouve dans le web\"{{ $json.results[0].body }} \" ainsi que la source \"{{ $json.results[0].href }}\"\nGénérez un message audio court (max 100 mots)\n\nExemple d’entrée utilisateur\n{\n  \"nom\": \"{{ $('Formulaire de soumission de nom de medicament').item.json['nom '] }}\",\n  \"email_client\": \"your_email@example.com\"\n}\n\nContraintes de réponse\nVous devez répondre uniquement avec un JSON VALIDE\n\nAucun texte ni balise autour du JSON\n\nAucun saut de ligne inutile\n\nFormat de réponse EXACTEMENT comme ci-dessous :\n\njson\nCopier\nModifier\n{\"email\":{\"to\":\"...\",\"subject\":\"...\",\"body\":\"...\"},\"telegram_audio\":\"...\"}\n\n",
+        "options": {
+          "systemMessage": "=Rôle\nVous êtes un agent intelligent chargé de gérer les demandes de médicaments et d’y répondre de manière professionnelle. Vous êtes connecté à trois sources de données :\n\nmcp_server_sqlite — contient les données officielles des médicaments disponibles (nom, prix, quantité, pharmacie).\n\nfilesystem — un fichier texte structuré contenant des médicaments (nom, description, prix, pharmacie).\n\nduckduckgo — utilisé pour faire une recherche sur Internet si le médicament est introuvable localement.\n\nContexte\nUn client a envoyé une demande concernant un médicament. Votre tâche est de traiter la demande selon cette logique :\n\nÉtapes à suivre\nSi le médicament est trouvé dans mcp_server_sqlite :\n\nRécupérez son nom, description, prix, pharmacie, et quantité disponible.\n\nRédigez un e-mail clair et professionnel contenant ces informations.\n\nGénérez un message audio court (max 100 mots en français) qui sera envoyé via Telegram.\n\nSinon, si le médicament est trouvé dans filesystem :\n\nRécupérez les informations disponibles (nom, description, prix, pharmacie).\n\nRédigez un e-mail professionnel avec ces données.\n\nGénérer un message audio court.\n\nSinon (aucune source locale ne contient ce médicament) :\n\nEffectuez une recherche Web via DuckDuckGo pour récupérer une description ou une utilité.\n\nRédigez un e-mail expliquant que le médicament est indisponible localement, mais que vous fournissez une description utile.\n\nGénérez un message audio court (max 100 mots).\n\nExemple d’entrée utilisateur\n{\n  \"nom_medicament\": \"Aspirine\",\n  \"email_client\": \"your_email@example.com\"\n}\n\nContraintes de réponse\nVous devez répondre uniquement avec un JSON VALIDE\n\nAucun texte ni balise autour du JSON\n\nAucun saut de ligne inutile\n\nFormat de réponse EXACTEMENT comme ci-dessous :\n\njson\nCopier\nModifier\n{\"email\":{\"to\":\"...\",\"subject\":\"...\",\"body\":\"...\"},\"telegram_audio\":\"...\"}\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        300,
+        -460
+      ],
+      "id": "6479c16c-1443-40f2-8a34-95213d97e8f2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -180
+      ],
+      "id": "6741986d-24e5-48ce-801c-0ab676bab228",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "your_email@example.com",
+        "toEmail": "={{ $json.email.to }}",
+        "subject": "={{ $json.email.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.email.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1000,
+        -540
+      ],
+      "id": "a353a6c0-a99c-4a94-8986-d03714da9f97",
+      "name": "Envoi d'un email informatif du medicament ",
+      "webhookId": "ef411e3c-d6f7-4bc0-a874-e492fa321ac9",
+      "credentials": {
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupère la sortie de l'agent IA\nconst agentOutput = $json[\"output\"];\n\n// Extrait le bloc JSON à partir de ```json ... ```\nconst match = agentOutput.match(/```json\\s*([\\s\\S]*?)\\s*```/);\n\nif (!match) {\n  throw new Error(\"Aucun bloc JSON valide trouvé dans la sortie.\");\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(match[1]);\n} catch (e) {\n  throw new Error(\"Erreur de parsing JSON : \" + e.message);\n}\n\n// Retourne l'objet structuré prêt à être envoyé à Gmail/Telegram\nreturn [\n  {\n    json: {\n      email: parsed.email,\n      telegram_audio: parsed.telegram_audio\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -460
+      ],
+      "id": "be59c3a6-28a5-4e6f-b230-41376fe90375",
+      "name": "Code transformation de données texte au json1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5050/text_to_speech",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.telegram_audio }}"
+            },
+            {
+              "name": "lang",
+              "value": "fr"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        -320
+      ],
+      "id": "55212fd1-b111-4230-af64-ad7af394306d",
+      "name": "Script qui transforme les données vers un audio1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "your_telegram_chat_id",
+        "binaryData": true,
+        "binaryPropertyName": "=data",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        -320
+      ],
+      "id": "1996c580-6550-409b-b86f-8fc3d269d3da",
+      "name": "Telegram1",
+      "webhookId": "0a0d3796-68c8-4b32-a3a9-7ac88418e185",
+      "credentials": {
+       
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5030/search_web",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "={{ $('MCP SQLITE SERVER').item.json.status }}"
+            },
+            {
+              "name": "recherche",
+              "value": "={{ $('Formulaire de soumission de nom de medicament').item.json['nom'] }}"
+            }
+          ]
+        },
+        "options": {
+          "jsonBody": true
+
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        -200
+      ],
+      "id": "e4928a63-894d-4ef0-a9cd-2447fb3ee220",
+      "name": "Script de la recherche dans Web"
+    },
+    {
+      "parameters": {
+        "content": "Cette Condition teste si le medicament existe dans notre base de donne ou non il se base sur un status recupere depuis MCP SQLITE SERVER si Status == exists il envoie un email contenant la descrition de ce medicament sinon il envoie la requette vers le autre serveur",
+        "width": 340,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -380,
+        -400
+      ],
+      "typeVersion": 1,
+      "id": "aeca5fe2-bf25-44d4-a7c9-653f656e5820",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Ce code permet de coonvertir la sortie de AI agent a un json contenant les informations nessecaire pour l'envoie d'email ainsi de voice note",
+        "height": 100,
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        620,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "a1c16bd8-6eec-47da-802c-9f8f56f14776",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Formulaire de soumission de nom de medicament": {
+      "main": [
+        [
+          {
+            "node": "MCP SQLITE SERVER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test de existence dans la base de donnés": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Script de la recherche dans Web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP SQLITE SERVER": {
+      "main": [
+        [
+          {
+            "node": "Test de existence dans la base de donnés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code transformation de données texte au json1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code transformation de données texte au json1": {
+      "main": [
+        [
+          {
+            "node": "Envoi d'un email informatif du medicament ",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Script qui transforme les données vers un audio1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Script qui transforme les données vers un audio1": {
+      "main": [
+        [
+          {
+            "node": "Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Script de la recherche dans Web": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3bf45e08-7f84-4989-98c1-e2376b031603",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "de85f0f44e7e427c74e26cdaba13f44870abf926c47fe37050e17b07cee08591"
+  },
+  "id": "PEe4NaVdcofD1BJM",
+  "tags": []
+}
